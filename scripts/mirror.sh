@@ -20,7 +20,7 @@ case "$PROVIDER" in
     ;;
   gitlab)
     : "${GITLAB_TOKEN:?Se requiere GITLAB_TOKEN}"
-    AUTH_HEADER="Authorization: Bearer ${GITLAB_TOKEN}"
+    AUTH_HEADER="PRIVATE-TOKEN: ${GITLAB_TOKEN}"
     AUTH_BASE="https://gitlab.com/"
     ;;
   *)
