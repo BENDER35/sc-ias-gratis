@@ -21,11 +21,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Huella del token (debug temporal)
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: printf '%s' "$GITLAB_TOKEN" | sha256sum
-
       - name: Empujar a GitLab
         env:
           GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}

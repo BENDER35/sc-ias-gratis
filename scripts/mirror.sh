@@ -3,8 +3,8 @@
 # Uso: scripts/mirror.sh <github|gitlab> <url-sin-token> [rama]
 #
 # Variables de entorno: GH_TOKEN (para github) o GITLAB_TOKEN (para gitlab).
-# El token se envía como cabecera HTTP, nunca dentro de la URL, para que no
-# aparezca en los logs de CI ni en `git remote -v`.
+# Las credenciales se insertan en la URL solo en memoria y toda la salida se
+# redacta, de modo que el token nunca aparece en los logs de CI ni en remotos.
 
 set -euo pipefail
 
@@ -12,16 +12,21 @@ PROVIDER="${1:?Uso: mirror.sh <github|gitlab> <url> [rama]}"
 TARGET_URL="${2:?Falta la URL del repositorio destino}"
 BRANCH="${3:-main}"
 
+if [[ "$TARGET_URL" != https://* ]]; then
+  echo "ERROR: la URL debe empezar por https://" >&2
+  exit 2
+fi
+
 case "$PROVIDER" in
   github)
     : "${GH_TOKEN:?Se requiere GH_TOKEN}"
-    AUTH_HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
-    AUTH_BASE="https://github.com/"
+    CREDENCIALES="x-access-token:${GH_TOKEN}@"
+    TOKEN="$GH_TOKEN"
     ;;
   gitlab)
     : "${GITLAB_TOKEN:?Se requiere GITLAB_TOKEN}"
-    AUTH_HEADER="PRIVATE-TOKEN: ${GITLAB_TOKEN}"
-    AUTH_BASE="https://gitlab.com/"
+    CREDENCIALES="oauth2:${GITLAB_TOKEN}@"
+    TOKEN="$GITLAB_TOKEN"
     ;;
   *)
     echo "Proveedor desconocido: $PROVIDER (usa github o gitlab)" >&2
@@ -29,14 +34,17 @@ case "$PROVIDER" in
     ;;
 esac
 
+AUTH_URL="https://${CREDENCIALES}${TARGET_URL#https://}"
+redactar() { sed "s/${TOKEN}/***/g"; }
+
 export GIT_TERMINAL_PROMPT=0
 REF="refs/remotes/mirror-target/${BRANCH}"
 LOCAL_SHA="$(git rev-parse HEAD)"
 
 # Leer el estado real del destino antes de escribir. Se traen todas las ramas
 # (con comodín) para que un repositorio recién creado y vacío no sea un error.
-if ! git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" fetch --quiet --no-tags --prune \
-     "$TARGET_URL" "+refs/heads/*:refs/remotes/mirror-target/*"; then
+if ! git fetch --quiet --no-tags --prune "$AUTH_URL" \
+     "+refs/heads/*:refs/remotes/mirror-target/*" 2>&1 | redactar >&2; then
   echo "ERROR: no se pudo consultar ${TARGET_URL}" >&2
   exit 3
 fi
@@ -55,6 +63,7 @@ if [[ "$REMOTE_SHA" == "$LOCAL_SHA" ]]; then
 fi
 
 # Si el destino tiene commits que aquí no existen, no los sobrescribimos.
+# REMOTE debe ser ancestro de LOCAL para que el empuje sea fast-forward.
 if [[ -n "$REMOTE_SHA" ]] && ! git merge-base --is-ancestor "$REMOTE_SHA" "$LOCAL_SHA"; then
   echo "ERROR: el destino tiene historial divergente (${REMOTE_SHA})." >&2
   echo "Abortando para no perder commits. Resuélvelo manualmente con un rebase." >&2
@@ -63,8 +72,8 @@ fi
 
 LEASE="refs/heads/${BRANCH}:${REMOTE_SHA}"
 
-if git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" push --quiet \
-     --force-with-lease="$LEASE" "$TARGET_URL" "HEAD:refs/heads/${BRANCH}"; then
+if git push --quiet --force-with-lease="$LEASE" "$AUTH_URL" \
+     "HEAD:refs/heads/${BRANCH}" 2>&1 | redactar >&2; then
   echo "OK: ${LOCAL_SHA} espejado en ${TARGET_URL} (${BRANCH})"
 else
   echo "ERROR: falló el push a ${TARGET_URL}" >&2

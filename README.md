@@ -60,7 +60,7 @@ Ambos usan `scripts/mirror.sh`, que:
 3. Si el destino contiene commits que no están en el origen, aborta para no perder historial.
 4. Empuja con `--force-with-lease` para proteger cambios concurrentes.
 
-Los tokens se guardan como secretos enmascarados (`GITLAB_TOKEN` en GitHub, `GH_TOKEN` en GitLab) y nunca aparecen en las URLs ni en los logs.
+Los tokens se guardan como secretos enmascarados (`GITLAB_TOKEN` en GitHub, `GH_TOKEN` en GitLab). `mirror.sh` los inyecta en la URL solo en memoria y redacta cualquier salida, por lo que no quedan en los logs ni en `git remote -v`.
 
 ### Reconfiguración manual
 
