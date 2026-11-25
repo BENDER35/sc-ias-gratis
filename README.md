@@ -109,3 +109,8 @@ Genera `sc-ias-gratis-v1.0.0.zip` (sin `.git`), crea el tag y la release en GitH
 ```
 
 Licencia: MIT.
+
+El espejo se verifica en ambas direcciones: un push en GitHub se replica en GitLab
+mediante GitHub Actions, y un push en GitLab se replica en GitHub mediante GitLab CI.
+El script `mirror.sh` compara SHA antes de empujar, por lo que un commit ya
+sincronizado no genera nuevos pipelines.
