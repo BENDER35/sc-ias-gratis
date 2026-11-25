@@ -35,7 +35,7 @@ LOCAL_SHA="$(git rev-parse HEAD)"
 
 # Leer el estado real del destino antes de escribir. Se traen todas las ramas
 # (con comodín) para que un repositorio recién creado y vacío no sea un error.
-if ! git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" fetch --quiet --no-tags \
+if ! git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" fetch --quiet --no-tags --prune \
      "$TARGET_URL" "+refs/heads/*:refs/remotes/mirror-target/*"; then
   echo "ERROR: no se pudo consultar ${TARGET_URL}" >&2
   exit 3
@@ -55,7 +55,7 @@ if [[ "$REMOTE_SHA" == "$LOCAL_SHA" ]]; then
 fi
 
 # Si el destino tiene commits que aquí no existen, no los sobrescribimos.
-if [[ -n "$REMOTE_SHA" ]] && ! git merge-base --is-ancestor "$LOCAL_SHA" "$REMOTE_SHA"; then
+if [[ -n "$REMOTE_SHA" ]] && ! git merge-base --is-ancestor "$REMOTE_SHA" "$LOCAL_SHA"; then
   echo "ERROR: el destino tiene historial divergente (${REMOTE_SHA})." >&2
   echo "Abortando para no perder commits. Resuélvelo manualmente con un rebase." >&2
   exit 4
