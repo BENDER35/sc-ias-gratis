@@ -33,10 +33,11 @@ export GIT_TERMINAL_PROMPT=0
 REF="refs/remotes/mirror-target/${BRANCH}"
 LOCAL_SHA="$(git rev-parse HEAD)"
 
-# Leer el estado real del destino antes de escribir.
+# Leer el estado real del destino antes de escribir. Se traen todas las ramas
+# (con comodín) para que un repositorio recién creado y vacío no sea un error.
 if ! git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" fetch --quiet --no-tags \
-     "$TARGET_URL" "+refs/heads/${BRANCH}:${REF}"; then
-  echo "ERROR: no se pudo consultar ${TARGET_URL} (${BRANCH})" >&2
+     "$TARGET_URL" "+refs/heads/*:refs/remotes/mirror-target/*"; then
+  echo "ERROR: no se pudo consultar ${TARGET_URL}" >&2
   exit 3
 fi
 
@@ -60,8 +61,7 @@ if [[ -n "$REMOTE_SHA" ]] && ! git merge-base --is-ancestor "$LOCAL_SHA" "$REMOT
   exit 4
 fi
 
-LEASE="refs/heads/${BRANCH}"
-[[ -n "$REMOTE_SHA" ]] && LEASE="refs/heads/${BRANCH}:${REMOTE_SHA}"
+LEASE="refs/heads/${BRANCH}:${REMOTE_SHA}"
 
 if git -c "http.${AUTH_BASE}.extraheader=${AUTH_HEADER}" push --quiet \
      --force-with-lease="$LEASE" "$TARGET_URL" "HEAD:refs/heads/${BRANCH}"; then
