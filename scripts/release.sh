@@ -7,6 +7,7 @@ set -euo pipefail
 VERSION="${1:-v1.0.0}"
 GH_REPO="BENDER35/sc-ias-gratis"
 GL_PROJECT="89453204"
+GL_REPO="BENDER_5000/sc-ias-gratis"
 ZIP="sc-ias-gratis-${VERSION}.zip"
 
 if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
@@ -45,11 +46,11 @@ else
     --title "sc-ias-gratis ${VERSION}" --notes "$NOTAS" --target main
 fi
 
-if glab release view "$VERSION" >/dev/null 2>&1; then
+if glab release view "$VERSION" --repo "$GL_REPO" >/dev/null 2>&1; then
   echo "La release ${VERSION} ya existe en GitLab; actualizando asset..."
-  glab release upload "$VERSION" "$ZIP#ZIP del proyecto" || true
+  glab release upload "$VERSION" "$ZIP#ZIP del proyecto" --repo "$GL_REPO" || true
 else
-  glab release create "$VERSION" "${ZIP}#ZIP del proyecto" \
+  glab release create "$VERSION" "${ZIP}#ZIP del proyecto" --repo "$GL_REPO" \
     --name "sc-ias-gratis ${VERSION}" --notes "$NOTAS" --ref main
 fi
 
