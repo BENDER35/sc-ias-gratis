@@ -1,0 +1,16 @@
+stages:
+  - mirror
+
+mirror_to_github:
+  stage: mirror
+  image: ubuntu:24.04
+  variables:
+    GIT_DEPTH: "0"
+    GIT_STRATEGY: fetch
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git ca-certificates >/dev/null
+  script:
+    - chmod +x scripts/mirror.sh
+    - ./scripts/mirror.sh github https://github.com/BENDER35/sc-ias-gratis.git main
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE != "merge_request_event"'
